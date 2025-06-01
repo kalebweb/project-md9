@@ -253,12 +253,20 @@ class Orcamento {
         }
     }
 
-    // Adicionar item ao orçamento
+   // Adicionar item ao orçamento
     public function adicionarItem($orcamento_id, $dados) {
         try {
             // Calcular valor total do item
-            $valor_usado = !empty($dados['valor_promocional']) ? $dados['valor_promocional'] : $dados['valor_unitario'];
-            $valor_total = $valor_usado * $dados['quantidade'];
+            $valor_unitario = isset($dados['valor_unitario']) ? str_replace(',', '.', str_replace('.', '', $dados['valor_unitario'])) : 0;
+            $valor_promocional = isset($dados['valor_promocional']) ? str_replace(',', '.', str_replace('.', '', $dados['valor_promocional'])) : null;
+            $quantidade = isset($dados['quantidade']) ? $dados['quantidade'] : 1;
+            
+            // Usar valor promocional se existir, senão usar valor unitário
+            $valor_usado = (!empty($valor_promocional) && $valor_promocional > 0) ? $valor_promocional : $valor_unitario;
+            $valor_total = $valor_usado * $quantidade;
+
+            // Ordem do item
+            $ordem = isset($dados['ordem']) ? $dados['ordem'] : 0;
 
             $query = "INSERT INTO " . $this->table_itens . " 
                      (orcamento_id, produto_id, descricao, quantidade, valor_unitario, valor_promocional, valor_total, ordem) 
@@ -268,11 +276,11 @@ class Orcamento {
             $stmt->bindParam(':orcamento_id', $orcamento_id);
             $stmt->bindParam(':produto_id', $dados['produto_id']);
             $stmt->bindParam(':descricao', $dados['descricao']);
-            $stmt->bindParam(':quantidade', $dados['quantidade']);
-            $stmt->bindParam(':valor_unitario', $dados['valor_unitario']);
-            $stmt->bindParam(':valor_promocional', $dados['valor_promocional']);
+            $stmt->bindParam(':quantidade', $quantidade);
+            $stmt->bindParam(':valor_unitario', $valor_unitario);
+            $stmt->bindParam(':valor_promocional', $valor_promocional);
             $stmt->bindParam(':valor_total', $valor_total);
-            $stmt->bindParam(':ordem', $dados['ordem']);
+            $stmt->bindParam(':ordem', $ordem);
             $stmt->execute();
 
             return $this->conn->lastInsertId();
