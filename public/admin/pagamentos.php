@@ -22,7 +22,7 @@ if ($_POST && isset($_POST['acao']) && $_POST['acao'] === 'adicionar_plano') {
         'valor' => str_replace(',', '.', str_replace('.', '', $_POST['valor'])),
         'limite_orcamentos' => (int)$_POST['limite_orcamentos']
     ];
-    if (empty($dados['nome']) || $dados['valor'] <= 0) {
+    if (empty($dados['nome']) || !is_numeric($dados['valor']) || $dados['valor'] < 0) {
         $error = 'Preencha o nome do plano e um valor válido.';
     } else {
         $query = "INSERT INTO planos (nome, descricao, valor, limite_orcamentos) VALUES (:nome, :descricao, :valor, :limite_orcamentos)";
@@ -77,7 +77,7 @@ if (isset($_POST['acao']) && $_POST['acao'] === 'editar_plano' && isset($_POST['
         'valor' => str_replace(',', '.', str_replace('.', '', $_POST['valor'])),
         'limite_orcamentos' => (int)$_POST['limite_orcamentos']
     ];
-    if (empty($dados['nome']) || $dados['valor'] <= 0) {
+    if (empty($dados['nome']) || !is_numeric($dados['valor']) || $dados['valor'] < 0) {
         $error = 'Preencha o nome do plano e um valor válido.';
     } else {
         $query = "UPDATE planos SET nome = :nome, descricao = :descricao, valor = :valor, limite_orcamentos = :limite_orcamentos WHERE id = :id";
@@ -112,6 +112,31 @@ if (isset($_POST['acao']) && $_POST['acao'] === 'excluir_plano' && isset($_POST[
         } else {
             $error = 'Erro ao excluir plano.';
         }
+    }
+}
+
+// Alterar plano diretamente na tabela de empresas
+if (isset($_POST['acao']) && $_POST['acao'] === 'alterar_plano_empresa' && isset($_POST['empresa_id'], $_POST['novo_plano_id'])) {
+    $empresa_id = (int)$_POST['empresa_id'];
+    $novo_plano_id = (int)$_POST['novo_plano_id'];
+    // Buscar dados do plano
+    $stmt = $conn->prepare('SELECT * FROM planos WHERE id = :id');
+    $stmt->bindParam(':id', $novo_plano_id);
+    $stmt->execute();
+    $plano = $stmt->fetch();
+    if ($plano) {
+        $query = "UPDATE empresas SET plano = :plano, limite_orcamentos = :limite_orcamentos WHERE id = :empresa_id";
+        $stmt = $conn->prepare($query);
+        $stmt->bindParam(':plano', $plano['nome']);
+        $stmt->bindParam(':limite_orcamentos', $plano['limite_orcamentos']);
+        $stmt->bindParam(':empresa_id', $empresa_id);
+        if ($stmt->execute()) {
+            $success = 'Plano da empresa alterado com sucesso!';
+        } else {
+            $error = 'Erro ao alterar plano da empresa.';
+        }
+    } else {
+        $error = 'Plano não encontrado.';
     }
 }
 
@@ -313,6 +338,7 @@ if (isset($_GET['editar']) && is_numeric($_GET['editar'])) {
                             <th>ID</th>
                             <th>Empresa</th>
                             <th>Plano Atual</th>
+                            <th>Alterar Plano</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -321,6 +347,19 @@ if (isset($_GET['editar']) && is_numeric($_GET['editar'])) {
                                 <td><?php echo $emp['id']; ?></td>
                                 <td><?php echo htmlspecialchars($emp['razao_social']); ?></td>
                                 <td><?php echo htmlspecialchars($emp['plano']); ?></td>
+                                <td>
+                                    <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="acao" value="alterar_plano_empresa">
+                                        <input type="hidden" name="empresa_id" value="<?php echo $emp['id']; ?>">
+                                        <select name="novo_plano_id" required>
+                                            <option value="">Selecione...</option>
+                                            <?php foreach ($planos as $plano): ?>
+                                                <option value="<?php echo $plano['id']; ?>" <?php echo ($emp['plano'] == $plano['nome']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($plano['nome']); ?> (R$ <?php echo number_format($plano['valor'], 2, ',', '.'); ?>)</option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary">Alterar</button>
+                                    </form>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
