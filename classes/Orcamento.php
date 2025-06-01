@@ -6,6 +6,7 @@ class Orcamento {
     private $conn;
     private $table = 'orcamentos';
     private $table_itens = 'orcamento_itens';
+    private $table_clientes = 'clientes';
 
     public function __construct() {
         $database = new Database();
@@ -551,6 +552,40 @@ class Orcamento {
             $stmt->execute();
         } catch (Exception $e) {
             error_log("Erro ao salvar log: " . $e->getMessage());
+        }
+    }
+
+    public function listarClientes($empresa_id) {
+        $stmt = $this->conn->prepare("SELECT id, razao_social FROM clientes WHERE empresa_id = :empresa_id ORDER BY razao_social ASC");
+        $stmt->bindParam(':empresa_id', $empresa_id);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function adicionarOrcamento($dados, $empresa_id, $colaborador_id) {
+        try {
+            $this->conn->beginTransaction();
+            // Gerar número único do orçamento
+            $numero_orcamento = $this->gerarNumeroOrcamento($empresa_id);
+            $query = "INSERT INTO orcamentos (empresa_id, cliente_id, colaborador_id, numero_orcamento, titulo, descricao, usuario_id, data_criacao, status) VALUES (:empresa_id, :cliente_id, :colaborador_id, :numero_orcamento, :titulo, :descricao, :usuario_id, NOW(), 'rascunho')";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':empresa_id', $empresa_id);
+            $stmt->bindParam(':cliente_id', $dados['cliente_id']);
+            $stmt->bindParam(':colaborador_id', $colaborador_id);
+            $stmt->bindParam(':numero_orcamento', $numero_orcamento);
+            $stmt->bindParam(':titulo', $dados['titulo']);
+            $stmt->bindParam(':descricao', $dados['descricao']);
+            $stmt->bindParam(':usuario_id', $colaborador_id); // Se quiser manter usuario_id igual ao colaborador
+            $stmt->execute();
+            $orcamento_id = $this->conn->lastInsertId();
+            foreach ($dados['itens'] as $item) {
+                $this->adicionarItem($orcamento_id, $item);
+            }
+            $this->conn->commit();
+            return ['success' => true, 'message' => 'Orçamento criado com sucesso!', 'id' => $orcamento_id, 'numero' => $numero_orcamento];
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return ['success' => false, 'message' => 'Erro ao criar orçamento: ' . $e->getMessage()];
         }
     }
 }
