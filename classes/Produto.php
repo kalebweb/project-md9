@@ -470,5 +470,31 @@ class Produto {
             error_log("Erro ao salvar log: " . $e->getMessage());
         }
     }
+
+    public function alterarStatusProduto($id, $empresa_id, $ativo) {
+        try {
+            $result = $this->buscarProduto($id, $empresa_id);
+            if (!$result['success']) {
+                return $result;
+            }
+            $dados_antigos = $result['produto'];
+            $query = "UPDATE " . $this->table . " SET ativo = :ativo WHERE id = :id AND empresa_id = :empresa_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':ativo', $ativo);
+            $stmt->bindParam(':id', $id);
+            $stmt->bindParam(':empresa_id', $empresa_id);
+            $stmt->execute();
+            if ($stmt->rowCount() > 0) {
+                $acao = $ativo ? 'ativar_produto' : 'desativar_produto';
+                $this->logAction($_SESSION['user_id'], $acao, $this->table, $id, $dados_antigos, ['ativo' => $ativo]);
+                $status_text = $ativo ? 'ativado' : 'desativado';
+                return ['success' => true, 'message' => "Produto $status_text com sucesso!"];
+            } else {
+                return ['success' => false, 'message' => 'Produto não encontrado ou nenhuma alteração foi feita.'];
+            }
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Erro ao alterar status do produto: ' . $e->getMessage()];
+        }
+    }
 }
 ?>
