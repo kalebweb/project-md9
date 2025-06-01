@@ -167,6 +167,7 @@ $empresas = $stmt->fetchAll();
                             <th>Telefone</th>
                             <th>Cidade</th>
                             <th>Estado</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,6 +181,9 @@ $empresas = $stmt->fetchAll();
                                 <td><?php echo htmlspecialchars($emp['telefone']); ?></td>
                                 <td><?php echo htmlspecialchars($emp['cidade']); ?></td>
                                 <td><?php echo htmlspecialchars($emp['estado']); ?></td>
+                                <td>
+                                    <a href="editar_empresa.php?id=<?php echo $emp['id']; ?>" class="btn btn-sm btn-primary">✏️ Editar</a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
