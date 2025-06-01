@@ -31,13 +31,29 @@ if ($_POST) {
         'estoque_atual' => (int)($_POST['estoque_atual'] ?: 0),
         'foto' => $_FILES['foto'] ?? null
     ];
+
+    // Lógica para categoria rápida
+    if (!empty($dados['categoria_id']) && strpos($dados['categoria_id'], 'new_') === 0) {
+        $nome_categoria = substr($dados['categoria_id'], 4); // Remove 'new_'
+        $dados_categoria = [
+            'nome' => $nome_categoria,
+            'descricao' => '',
+            'cor' => '#667eea' // cor padrão
+        ];
+        $cat_result = $produto->adicionarCategoria($dados_categoria, $_SESSION['empresa_id']);
+        if ($cat_result['success']) {
+            $dados['categoria_id'] = $cat_result['id'];
+        } else {
+            $error = 'Erro ao criar categoria: ' . $cat_result['message'];
+        }
+    }
     
     // Validações básicas
     if (empty($dados['nome']) || empty($dados['preco'])) {
         $error = 'Nome e preço são obrigatórios.';
     } elseif (!is_numeric($dados['preco']) || $dados['preco'] <= 0) {
         $error = 'Preço deve ser um valor válido maior que zero.';
-    } else {
+    } elseif (empty($error)) { // só tenta adicionar se não houve erro na categoria
         $result = $produto->adicionarProduto($dados, $_SESSION['empresa_id']);
         if ($result['success']) {
             $success = $result['message'];

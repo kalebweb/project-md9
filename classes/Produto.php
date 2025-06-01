@@ -346,6 +346,27 @@ class Produto {
         }
     }
 
+    public function editarCategoria($id, $dados, $empresa_id) {
+        try {
+            $query = "UPDATE " . $this->table_categorias . " SET nome = :nome, descricao = :descricao, cor = :cor WHERE id = :id AND empresa_id = :empresa_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':nome', $dados['nome']);
+            $stmt->bindParam(':descricao', $dados['descricao']);
+            $stmt->bindParam(':cor', $dados['cor']);
+            $stmt->bindParam(':id', $id);
+            $stmt->bindParam(':empresa_id', $empresa_id);
+            $stmt->execute();
+            if ($stmt->rowCount() > 0) {
+                $this->logAction($_SESSION['user_id'], 'editar_categoria', $this->table_categorias, $id, null, $dados);
+                return ['success' => true, 'message' => 'Categoria atualizada com sucesso!'];
+            } else {
+                return ['success' => false, 'message' => 'Nenhuma alteração foi feita.'];
+            }
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Erro ao editar categoria: ' . $e->getMessage()];
+        }
+    }
+
     // Upload de foto
     private function uploadFoto($arquivo, $empresa_id) {
         try {
