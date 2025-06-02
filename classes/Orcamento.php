@@ -264,13 +264,14 @@ class Orcamento {
             // Usar valor promocional se existir, senão usar valor unitário
             $valor_usado = (!empty($valor_promocional) && $valor_promocional > 0) ? $valor_promocional : $valor_unitario;
             $valor_total = $valor_usado * $quantidade;
+            $valor_final = $valor_total; // valor_final do item é igual ao valor_total (sem descontos no item)
 
             // Ordem do item
             $ordem = isset($dados['ordem']) ? $dados['ordem'] : 0;
 
             $query = "INSERT INTO " . $this->table_itens . " 
-                     (orcamento_id, produto_id, descricao, quantidade, valor_unitario, valor_promocional, valor_total, ordem) 
-                     VALUES (:orcamento_id, :produto_id, :descricao, :quantidade, :valor_unitario, :valor_promocional, :valor_total, :ordem)";
+                     (orcamento_id, produto_id, descricao, quantidade, valor_unitario, valor_promocional, valor_total, valor_final, ordem) 
+                     VALUES (:orcamento_id, :produto_id, :descricao, :quantidade, :valor_unitario, :valor_promocional, :valor_total, :valor_final, :ordem)";
             
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':orcamento_id', $orcamento_id);
@@ -280,6 +281,7 @@ class Orcamento {
             $stmt->bindParam(':valor_unitario', $valor_unitario);
             $stmt->bindParam(':valor_promocional', $valor_promocional);
             $stmt->bindParam(':valor_total', $valor_total);
+            $stmt->bindParam(':valor_final', $valor_final);
             $stmt->bindParam(':ordem', $ordem);
             $stmt->execute();
 
